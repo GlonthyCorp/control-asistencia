@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Asistencia - Cursado 2025</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        
+        /* Formulario para agregar materias */
+        .agregar-materia {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .agregar-materia h2 {
+            margin-top: 0;
+            color: white;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .form-group input, .form-group select {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        #dias-horarios {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .dia-horario-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .dia-checkbox {
+            display: flex;
+            align-items: center;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            min-width: 80px;
+        }
+        .dia-checkbox:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .dia-checkbox input {
+            margin-right: 5px;
+        }
+        .horario-selects {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+        .horario-desde, .horario-hasta {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.9);
+            transition: all 0.3s ease;
+        }
+        .horario-separador {
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .btn-agregar {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .btn-agregar:hover {
+            background: #229954;
+        }
+        .btn-eliminar-materia {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .btn-eliminar-materia:hover {
+            background: #c0392b;
+        }
+        
+        /* Estilos existentes */
+        .materia {
+            background-color: #ecf0f1;
+            margin-bottom: 25px;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid #3498db;
+            position: relative;
+        }
+        .materia-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 0;
+            color: #2980b9;
+        }
+        .info, .progreso {
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        .progreso {
+            font-weight: bold;
+        }
+        .lista-clases {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 10px;
+        }
+        .lista-clases li {
+            background: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #bdc3c7;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background-color 0.2s;
+        }
+        .lista-clases li.suspendida {
+            background-color: #f8f9fa;
+            opacity: 0.7;
+            text-decoration: line-through;
+        }
+        .clase-info {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+        }
+        .clase-info input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+        }
+        .clase-controles {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        .btn-suspender {
+            background: #e67e22;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: background-color 0.2s;
+        }
+        .btn-suspender:hover {
+            background: #d35400;
+        }
+        .btn-suspender.activa {
+            background: #c0392b;
+        }
+        .porcentaje {
+            padding: 3px 8px;
+            border-radius: 5px;
+            color: #fff;
+            font-weight: bold;
+        }
+        .porcentaje.rojo { background-color: #e74c3c; }
+        .porcentaje.verde { background-color: #2ecc71; }
+        .porcentaje.amarillo { background-color: #f39c12; }
+        
+        .estadisticas-extras {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        
+        .leyenda {
+            background: #e8f6f3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #16a085;
+        }
+        
+        .leyenda h3 {
+            margin-top: 0;
+            color: #16a085;
+        }
+        
+        .no-materias {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .lista-clases {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Control de Asistencia - Cursado 2025</h1>
+        
+        <div class="leyenda">
+            <h3>Cómo usar:</h3>
+            <p>➕ <strong>Agregar materia:</strong> Completa el formulario de abajo para crear una nueva materia</p>
+            <p>✅ <strong>Marcar asistencia:</strong> Usa el checkbox para marcar cuando asististe a clase</p>
+            <p>⏸️ <strong>Clase suspendida:</strong> Usa el botón "Susp." para marcar clases canceladas temporalmente (no cuentan para el promedio)</p>
+            <p>📊 <strong>Porcentaje:</strong> Se calcula solo sobre las clases que efectivamente se dictaron</p>
+        </div>
+
+        <div class="agregar-materia">
+            <h2>➕ Agregar Nueva Materia</h2>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="nombre-materia">Nombre de la Materia:</label>
+                    <input type="text" id="nombre-materia" required placeholder="Ej: Análisis Matemático">
+                </div>
+                <div class="form-group">
+                    <label for="fecha-inicio">Fecha de Inicio:</label>
+                    <input type="date" id="fecha-inicio" required>
+                </div>
+                <div class="form-group">
+                    <label for="fecha-fin">Fecha de Fin:</label>
+                    <input type="date" id="fecha-fin" required>
+                </div>
+                <div class="form-group full-width">
+                    <label>Días y Horarios:</label>
+                    <div id="dias-horarios">
+                        <div class="dia-horario-item">
+                            <label class="dia-checkbox">
+                                <input type="checkbox" value="1" name="dias" onchange="toggleHorario(this)"> Lunes
+                            </label>
+                            <div class="horario-selects">
+                                <select class="horario-desde">
+                                    <option value="">Desde...</option>
+                                    <option value="07:00">07:00</option>
+                                    <option value="08:00">08:00</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="19:00">19:00</option>
+                                    <option value="20:00">20:00</option>
+                                    <option value="21:00">21:00</option>
+                                </select>
+                                <span class="horario-separador">a</span>
+                                <select class="horario-hasta">
+                                    <option value="">Hasta...</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="19:00">19:00</option>
+                                    <option value="20:00">20:00</option>
+                                    <option value="21:00">21:00</option>
+                                    <option value="22:00">22:00</option>
+                                    <option value="23:00">23:00</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="dia-horario-item">
+                            <label class="dia-checkbox">
+                                <input type="checkbox" value="2" name="dias" onchange="toggleHorario(this)"> Martes
+                            </label>
+                            <div class="horario-selects">
+                                <select class="horario-desde">
+                                    <option value="">Desde...</option>
+                                    <option value="07:00">07:00</option>
+                                    <option value="08:00">08:00</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="19:00">19:00</option>
+                                    <option value="20:00">20:00</option>
+                                    <option value="21:00">21:00</option>
+                                </select>
+                                <span class="horario-separador">a</span>
+                                <select class="horario-hasta">
+                                    <option value="">Hasta...</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="19:00">19:00</option>
+                                    <option value="20:00">20:00</option>
+                                    <option value="21:00">21:00</option>
+                                    <option value="22:00">22:00</option>
+                                    <option value="23:00">23:00</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="dia-horario-item">
+                            <label class="dia-checkbox">
+                                <input type="checkbox" value="3" name="dias" onchange="toggleHorario(this)"> Miércoles
+                            </label>
+                            <div class="horario-selects">
+                                <select class="horario-desde">
+                                    <option value="">Desde...</option>
+                                    <option value="07:00">07:00</option>
+                                    <option value="08:00">08:00</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="19:00">19:00</option>
+                                    <option value="20:00">20:00</option>
+                                    <option value="21:00">21:00</option>
+                                </select>
+                                <span class="horario-separador">a</span>
+                                <select class="horario-hasta">
+                                    <option value="">Hasta...</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="19:00">19:00</option>
+                                    <option value="20:00">20:00</option>
+                                    <option value="21:00">21:00</option>
+                                    <option value="22:00">22:00</option>
+                                    <option value="23:00">23:00</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="dia-horario-item">
+                            <label class="dia-checkbox">
+                                <input type="checkbox" value="4" name="dias" onchange="toggleHorario(this)"> Jueves
+                            </label>
+                            <div class="horario-selects">
+                                <select class="horario-desde">
+                                    <option value="">Desde...</option>
+                                    <option value="07:00">07:00</option>
+                                    <option value="08:00">08:00</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="19:00">19:00</option>
+                                    <option value="20:00">20:00</option>
+                                    <option value="21:00">21:00</option>
+                                </select>
+                                <span class="horario-separador">a</span>
+                                <select class="horario-hasta">
+                                    <option value="">Hasta...</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="19:00">19:00</option>
+                                    <option value="20:00">20:00</option>
+                                    <option value="21:00">21:00</option>
+                                    <option value="22:00">22:00</option>
+                                    <option value="23:00">23:00</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="dia-horario-item">
+                            <label class="dia-checkbox">
+                                <input type="checkbox" value="5" name="dias" onchange="toggleHorario(this)"> Viernes
+                            </label>
+                            <div class="horario-selects">
+                                <select class="horario-desde">
+                                    <option value="">Desde...</option>
+                                    <option value="07:00">07:00</option>
+                                    <option value="08:00">08:00</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="19:00">19:00</option>
+                                    <option value="20:00">20:00</option>
+                                    <option value="21:00">21:00</option>
+                                </select>
+                                <span class="horario-separador">a</span>
+                                <select class="horario-hasta">
+                                    <option value="">Hasta...</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="19:00">19:00</option>
+                                    <option value="20:00">20:00</option>
+                                    <option value="21:00">21:00</option>
+                                    <option value="22:00">22:00</option>
+                                    <option value="23:00">23:00</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="dia-horario-item">
+                            <label class="dia-checkbox">
+                                <input type="checkbox" value="6" name="dias" onchange="toggleHorario(this)"> Sábado
+                            </label>
+                            <div class="horario-selects">
+                                <select class="horario-desde">
+                                    <option value="">Desde...</option>
+                                    <option value="07:00">07:00</option>
+                                    <option value="08:00">08:00</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                </select>
+                                <span class="horario-separador">a</span>
+                                <select class="horario-hasta">
+                                    <option value="">Hasta...</option>
+                                    <option value="09:00">09:00</option>
+                                    <option value="10:00">10:00</option>
+                                    <option value="11:00">11:00</option>
+                                    <option value="12:00">12:00</option>
+                                    <option value="13:00">13:00</option>
+                                    <option value="14:00">14:00</option>
+                                    <option value="15:00">15:00</option>
+                                    <option value="16:00">16:00</option>
+                                    <option value="17:00">17:00</option>
+                                    <option value="18:00">18:00</option>
+                                    <option value="19:00">19:00</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button type="button" onclick="crearMateria()" class="btn-agregar">Crear Materia</button>
+        </div>
+
+        <div id="materias-container">
+            <div class="no-materias">
+                <h3>No hay materias cargadas</h3>
+                <p>Usa el formulario de arriba para agregar tu primera materia</p>
+            </div>
+        </div>
+        
+        <footer>
+            Creado para facilitar el seguimiento del cursado. ¡Muchos éxitos! 🎓
+        </footer>
+    </div>
+
+    <script>
+        let materias = JSON.parse(localStorage.getItem('materias-asistencia') || '[]');
+
+        function toggleHorario(checkbox) {
+            const horarioSelects = checkbox.closest('.dia-horario-item').querySelector('.horario-selects');
+            if (checkbox.checked) {
+                horarioSelects.style.display = 'flex';
+            } else {
+                horarioSelects.style.display = 'none';
+                horarioSelects.querySelector('.horario-desde').value = '';
+                horarioSelects.querySelector('.horario-hasta').value = '';
+            }
+        }
+
+        function generarId() {
+            return 'materia_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        function calcularClases(fechaInicio, fechaFin, diasHorarios) {
+            const inicio = new Date(fechaInicio + 'T00:00:00');
+            const fin = new Date(fechaFin + 'T00:00:00');
+            const clases = [];
+            
+            const fechaActual = new Date(inicio);
+            
+            while (fechaActual <= fin) {
+                const diaSemana = fechaActual.getDay();
+                const diaAjustado = diaSemana === 0 ? 7 : diaSemana;
+                
+                const diaConfig = diasHorarios.find(d => d.dia === diaAjustado);
+                
+                if (diaConfig) {
+                    const nombresDias = {
+                        1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 
+                        4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 7: 'Domingo'
+                    };
+                    
+                    const fechaFormateada = `${nombresDias[diaAjustado]} ${fechaActual.getDate().toString().padStart(2, '0')}/${(fechaActual.getMonth() + 1).toString().padStart(2, '0')} (${diaConfig.horario})`;
+                    
+                    clases.push({
+                        fecha: new Date(fechaActual),
+                        fechaFormateada: fechaFormateada,
+                        id: `clase_${fechaActual.getTime()}_${diaAjustado}`,
+                        dia: diaAjustado,
+                        horario: diaConfig.horario
+                    });
+                }
+                
+                fechaActual.setDate(fechaActual.getDate() + 1);
+            }
+
+            return clases;
+        }
+
+        function crearMateria() {
+            const nombre = document.getElementById('nombre-materia').value.trim();
+            const fechaInicio = document.getElementById('fecha-inicio').value;
+            const fechaFin = document.getElementById('fecha-fin').value;
+            
+            if (!nombre || !fechaInicio || !fechaFin) {
+                alert('Por favor completa nombre, fecha de inicio y fecha de fin');
+                return;
+            }
+            
+            // Obtener días y horarios
+            const diasHorarios = [];
+            const diaItems = document.querySelectorAll('.dia-horario-item');
+            
+            diaItems.forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                const desde = item.querySelector('.horario-desde');
+                const hasta = item.querySelector('.horario-hasta');
+                
+                if (checkbox.checked && desde.value && hasta.value) {
+                    diasHorarios.push({
+                        dia: parseInt(checkbox.value),
+                        horario: `${desde.value} a ${hasta.value}`
+                    });
+                }
+            });
+
+            if (diasHorarios.length === 0) {
+                alert('Debes seleccionar al menos un día y completar los horarios');
+                return;
+            }
+
+            const clases = calcularClases(fechaInicio, fechaFin, diasHorarios);
+            
+            if (clases.length === 0) {
+                alert('No se encontraron clases en el período seleccionado');
+                return;
+            }
+
+            const horarioResumen = diasHorarios.map(dh => {
+                const nombresDias = {
+                    1: 'Lunes', 2: 'Martes', 3: 'Miércoles', 
+                    4: 'Jueves', 5: 'Viernes', 6: 'Sábado'
+                };
+                return `${nombresDias[dh.dia]}: ${dh.horario}`;
+            }).join(' | ');
+
+            const nuevaMateria = {
+                id: generarId(),
+                nombre,
+                horarioResumen,
+                fechaInicio,
+                fechaFin,
+                diasHorarios,
+                clases,
+                totalClases: clases.length,
+                clasesNecesarias: Math.ceil(clases.length * 0.75),
+                asistencias: {},
+                suspendidas: {}
+            };
+
+            materias.push(nuevaMateria);
+            guardarMaterias();
+            renderizarMaterias();
+            
+            alert(`¡Materia "${nombre}" creada exitosamente con ${clases.length} clases!`);
+            
+            // Limpiar formulario
+            limpiarFormulario();
+        }
+
+        function limpiarFormulario() {
+            document.getElementById('nombre-materia').value = '';
+            document.getElementById('fecha-inicio').value = '';
+            document.getElementById('fecha-fin').value = '';
+            
+            document.querySelectorAll('input[name="dias"]').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.horario-selects').forEach(selects => {
+                selects.style.display = 'none';
+                selects.querySelector('.horario-desde').value = '';
+                selects.querySelector('.horario-hasta').value = '';
+            });
+        }
+
+        function guardarMaterias() {
+            localStorage.setItem('materias-asistencia', JSON.stringify(materias));
+        }
+
+        // Función específica para eliminar que SÍ funciona
+        function eliminarMateriaAhora(id) {
+            console.log('Función eliminar llamada con ID:', id);
+            
+            const materia = materias.find(m => m.id === id);
+            console.log('Materia encontrada:', materia);
+            
+            if (!materia) {
+                alert('No se encontró la materia');
+                return;
+            }
+            
+            // Usar prompt como alternativa más confiable
+            const confirmar = prompt('¿Eliminar la materia "' + materia.nombre + '"? Escribe SI para confirmar:');
+            console.log('Confirmación recibida:', confirmar);
+            
+            if (confirmar && (confirmar.toUpperCase() === 'SI' || confirmar.toUpperCase() === 'SÍ' || confirmar.toUpperCase() === 'YES')) {
+                console.log('Eliminando materia...');
+                
+                // Filtrar y actualizar la variable global
+                materias = materias.filter(m => m.id !== id);
+                console.log('Materias después de filtrar:', materias.length);
+                
+                // Guardar en localStorage
+                localStorage.setItem('materias-asistencia', JSON.stringify(materias));
+                
+                // Renderizar de nuevo
+                renderizarMaterias();
+                
+                alert('✅ Materia "' + materia.nombre + '" eliminada correctamente');
+            } else {
+                console.log('Eliminación cancelada - no escribió SI');
+                alert('Eliminación cancelada');
+            }
+        }
+
+        // Funciones más simples
+        function toggleSuspensionSimple(materiaId, claseId) {
+            const materia = materias.find(m => m.id === materiaId);
+            const checkbox = document.getElementById(claseId);
+            const listItem = checkbox.closest('li');
+            const btn = listItem.querySelector('.btn-suspender');
+            
+            if (materia.suspendidas[claseId]) {
+                materia.suspendidas[claseId] = false;
+                btn.classList.remove('activa');
+                btn.textContent = 'Susp.';
+                listItem.classList.remove('suspendida');
+                checkbox.disabled = false;
+            } else {
+                materia.suspendidas[claseId] = true;
+                btn.classList.add('activa');
+                btn.textContent = 'Activa';
+                listItem.classList.add('suspendida');
+                checkbox.checked = false;
+                checkbox.disabled = true;
+                materia.asistencias[claseId] = false;
+            }
+            
+            localStorage.setItem('materias-asistencia', JSON.stringify(materias));
+            actualizarProgreso(materia);
+        }
+
+        function marcarAsistenciaSimple(materiaId, claseId) {
+            const materia = materias.find(m => m.id === materiaId);
+            const checkbox = document.getElementById(claseId);
+            materia.asistencias[claseId] = checkbox.checked;
+            localStorage.setItem('materias-asistencia', JSON.stringify(materias));
+            actualizarProgreso(materia);
+        }
+
+        function actualizarProgreso(materia) {
+            const asistencias = Object.values(materia.asistencias).filter(Boolean).length;
+            const clasesSuspendidas = Object.values(materia.suspendidas).filter(Boolean).length;
+            const clasesDictadas = materia.totalClases - clasesSuspendidas;
+            const clasesRestantes = Math.max(0, clasesDictadas - asistencias);
+            const porcentaje = clasesDictadas > 0 ? (asistencias / clasesDictadas) * 100 : 0;
+            const clasesNecesarias = Math.ceil(clasesDictadas * 0.75);
+
+            const materiaElement = document.getElementById(materia.id);
+            if (materiaElement) {
+                materiaElement.querySelector('.asistencias').textContent = asistencias;
+                materiaElement.querySelector('.clases-dictadas').textContent = clasesDictadas;
+                materiaElement.querySelector('.clases-suspendidas').textContent = clasesSuspendidas;
+                materiaElement.querySelector('.clases-restantes').textContent = clasesRestantes;
+                materiaElement.querySelector('.clases-necesarias').textContent = clasesNecesarias;
+                
+                const porcentajeSpan = materiaElement.querySelector('.porcentaje');
+                porcentajeSpan.textContent = `${porcentaje.toFixed(1)}%`;
+                
+                let porcentajeClass = 'rojo';
+                if (porcentaje >= 75) porcentajeClass = 'verde';
+                else if (porcentaje >= 60) porcentajeClass = 'amarillo';
+                
+                porcentajeSpan.className = `porcentaje ${porcentajeClass}`;
+            }
+        }
+
+        function renderizarMaterias() {
+            const container = document.getElementById('materias-container');
+            
+            if (materias.length === 0) {
+                container.innerHTML = `
+                    <div class="no-materias">
+                        <h3>No hay materias cargadas</h3>
+                        <p>Usa el formulario de arriba para agregar tu primera materia</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = materias.map(materia => {
+                const clasesHtml = materia.clases.map(clase => {
+                    const isChecked = materia.asistencias[clase.id] ? 'checked' : '';
+                    const isSuspendida = materia.suspendidas[clase.id];
+                    const suspendidaClass = isSuspendida ? 'suspendida' : '';
+                    const btnText = isSuspendida ? 'Activa' : 'Susp.';
+                    const btnClass = isSuspendida ? 'btn-suspender activa' : 'btn-suspender';
+                    const disabled = isSuspendida ? 'disabled' : '';
+                    
+                    return `
+                        <li class="${suspendidaClass}">
+                            <div class="clase-info">
+                                <input type="checkbox" id="${clase.id}" ${isChecked} ${disabled} onchange="marcarAsistenciaSimple('${materia.id}', '${clase.id}')">>
+                                <label for="${clase.id}">${clase.fechaFormateada}</label>
+                            </div>
+                            <div class="clase-controles">
+                                <button class="${btnClass}" onclick="toggleSuspensionSimple('${materia.id}', '${clase.id}')">
+                                    ${btnText}
+                                </button>
+                            </div>
+                        </li>
+                    `;
+                }).join('');
+
+                const asistencias = Object.values(materia.asistencias).filter(Boolean).length;
+                const clasesSuspendidas = Object.values(materia.suspendidas).filter(Boolean).length;
+                const clasesDictadas = materia.totalClases - clasesSuspendidas;
+                const clasesRestantes = Math.max(0, clasesDictadas - asistencias);
+                const porcentaje = clasesDictadas > 0 ? (asistencias / clasesDictadas) * 100 : 0;
+                const clasesNecesarias = Math.ceil(clasesDictadas * 0.75);
+
+                let porcentajeClass = 'rojo';
+                if (porcentaje >= 75) porcentajeClass = 'verde';
+                else if (porcentaje >= 60) porcentajeClass = 'amarillo';
+
+                return `
+                    <div class="materia" id="${materia.id}">
+                        <h2 class="materia-header">
+                            <span>${materia.nombre}</span>
+                            <button class="btn-eliminar-materia" onclick="eliminarMateriaAhora('${materia.id}')">
+                                🗑️ Eliminar
+                            </button>
+                        </h2>
+                        <div class="info">
+                            <strong>Horarios:</strong> ${materia.horarioResumen}<br>
+                            <strong>Período:</strong> ${new Date(materia.fechaInicio + 'T00:00:00').toLocaleDateString('es-ES')} - ${new Date(materia.fechaFin + 'T00:00:00').toLocaleDateString('es-ES')}<br>
+                            <strong>Total de Clases:</strong> <span class="total-clases">${materia.totalClases}</span> | 
+                            <strong>Necesitas asistir a:</strong> <span class="clases-necesarias">${clasesNecesarias}</span> (para el 75%)
+                        </div>
+                        <div class="progreso">
+                            Asistencias: <span class="asistencias">${asistencias}</span> de <span class="clases-dictadas">${clasesDictadas}</span> | 
+                            Porcentaje: <span class="porcentaje ${porcentajeClass}">${porcentaje.toFixed(1)}%</span>
+                        </div>
+                        <div class="estadisticas-extras">
+                            Clases suspendidas: <span class="clases-suspendidas">${clasesSuspendidas}</span> | 
+                            Clases restantes: <span class="clases-restantes">${clasesRestantes}</span>
+                        </div>
+                        <ul class="lista-clases">
+                            ${clasesHtml}
+                        </ul>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Inicializar la app
+        document.addEventListener('DOMContentLoaded', function() {
+            renderizarMaterias();
+        });
+    </script>
+
+</body>
+</html>
